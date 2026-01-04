@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>הוספת משימה</title>
+</head>
+<body>
+    <h2>הוספת משימה</h2>
+    <form method="post">
+        {% csrf_token %}
+        <label>שם משימה: <input type="text" name="task_name" required></label><br>
+        <label>תיאור: <input type="text" name="task_description" required></label><br>
+        <label>תאריך יעד: <input type="date" name="task_last_date" required></label><br>
+        <button type="submit">הוסף</button>
+    </form>
+    <a href="{% url 'tasks' %}">חזור</a>
+</body>
+</html>

@@ -3,8 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <title>Tasks</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        .navbar { display: flex; justify-content: space-between; align-items: center; background: #2c3e50; color: #fff; padding: 10px 30px; }
+        .navbar-center { flex: 1; text-align: center; }
+        .user-menu { position: relative; display: inline-block; }
+        .user-icon { cursor: pointer; border-radius: 50%; background: #34495e; padding: 8px 12px; font-size: 18px; }
+        .dropdown { display: none; position: absolute; right: 0; background: #fff; color: #333; min-width: 120px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 1; border-radius: 4px; }
+        .dropdown a { color: #333; padding: 10px 16px; text-decoration: none; display: block; }
+        .dropdown a:hover { background: #f1f1f1; }
+        .user-menu:hover .dropdown { display: block; }
+        .filters { display: flex; gap: 20px; justify-content: center; margin: 20px 0; }
+        .tasks-table { width: 90%; margin: 0 auto; border-collapse: collapse; background: #fff; }
+        .tasks-table th, .tasks-table td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        .tasks-table th { background: #f4f4f4; }
+        .action-btn { padding: 4px 10px; border: none; border-radius: 3px; cursor: pointer; }
+        .action-btn.complete { background: #27ae60; color: #fff; }
+        .action-btn.take { background: #2980b9; color: #fff; }
+        .action-btn.edit { background: #f39c12; color: #fff; }
+        .action-btn.delete { background: #c0392b; color: #fff; }
+        .add-task-btn { background: #16a085; color: #fff; border: none; border-radius: 3px; padding: 8px 16px; cursor: pointer; margin-bottom: 10px; }
+    </style>
 </head>
 <body>
-    tasks
+    <div class="navbar">
+        <div></div>
+        <div class="navbar-center">
+            <form class="filters" method="get">
+                <select name="status">
+                    <option value="">סנן לפי סטטוס</option>
+                    <option value="1">חדש</option>
+                    <option value="2">בתהליך</option>
+                    <option value="3">הושלם</option>
+                </select>
+                <select name="employee">
+                    <option value="">סנן לפי עובד</option>
+                    {% for emp in employees %}
+                        <option value="{{ emp.id }}">{{ emp.username }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit">סנן</button>
+            </form>
+        </div>
+        <div class="user-menu">
+            <span class="user-icon">&#128100;</span>
+            <div class="dropdown">
+                <a href="{% url 'register' %}">רישום</a>
+                <form method="post" action="{% url 'logout' %}" style="display:inline; margin:0; padding:0;">
+                    {% csrf_token %}
+                    <button type="submit" style="background:none;border:none;color:#333;cursor:pointer;width:100%;text-align:left;padding:10px 16px;">יציאה</button>
+                </form>
+            </div>
+        </div>
+    </div>
+   <p> role{{user}}</p>
+    {% if user.role == 1 %}
+        <div style="width:90%;margin:20px auto 0 auto;text-align:left;">
+            <button class="add-task-btn" onclick="window.location.href=`{% url 'add_task' %}`">+ הוסף משימה</button>
+        </div>
+    {% endif %}
+    <table class="tasks-table">
+        <thead>
+            <tr>
+                <th>שם משימה</th>
+                <th>סטטוס</th>
+                <th>תיאור</th>
+                <th>תאריך יעד</th>
+                <th>עובד מבצע</th>
+                <th>פעולות</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for task in tasks %}
+            <tr>
+                <td>{{ task.task_name }}</td>
+                <td>{% if task.task_status == 1 %}חדש{% elif task.task_status == 2 %}בתהליך{% else %}הושלם{% endif %}</td>
+                <td>{{ task.task_description }}</td>
+                <td>{{ task.task_last_date }}</td>
+                <td>
+                    {% if task.employee %}
+                        {{ task.employee.username }}
+                    {% elif user.role == 2 %}
+                        <form method="post" action="{% url 'take_task' task.id %}">{% csrf_token %}
+                            <button class="action-btn take" type="submit">קח לביצוע</button>
+                        </form>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if user.role == 2 and task.employee == user and task.task_status != 3 %}
+                        <form method="post" action="{% url 'complete_task' task.id %}">{% csrf_token %}
+                            <button class="action-btn complete" type="submit">סמן כהושלם</button>
+                        </form>
+                    {% endif %}
+                    {% if user.role == 1 %}
+                        <button class="action-btn edit" onclick="window.location.href='{% url 'edit_task' task.id %}'">✏️</button>
+                        <form method="post" action="{% url 'delete_task' task.id %}" style="display:inline;">{% csrf_token %}
+                            <button class="action-btn delete" type="submit">🗑️</button>
+                        </form>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
 </body>
 </html>
