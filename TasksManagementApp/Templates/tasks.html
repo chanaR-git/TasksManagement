@@ -1,110 +1,171 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he">
 <head>
     <meta charset="UTF-8">
-    <title>Tasks</title>
+    <title>ניהול משימות</title>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <!-- Bootstrap CSS & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-        .navbar { display: flex; justify-content: space-between; align-items: center; background: #2c3e50; color: #fff; padding: 10px 30px; }
-        .navbar-center { flex: 1; text-align: center; }
         .user-menu { position: relative; display: inline-block; }
-        .user-icon { cursor: pointer; border-radius: 50%; background: #34495e; padding: 8px 12px; font-size: 18px; }
-        .dropdown { display: none; position: absolute; right: 0; background: #fff; color: #333; min-width: 120px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 1; border-radius: 4px; }
-        .dropdown a { color: #333; padding: 10px 16px; text-decoration: none; display: block; }
-        .dropdown a:hover { background: #f1f1f1; }
-        .user-menu:hover .dropdown { display: block; }
-        .filters { display: flex; gap: 20px; justify-content: center; margin: 20px 0; }
-        .tasks-table { width: 90%; margin: 0 auto; border-collapse: collapse; background: #fff; }
-        .tasks-table th, .tasks-table td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-        .tasks-table th { background: #f4f4f4; }
-        .action-btn { padding: 4px 10px; border: none; border-radius: 3px; cursor: pointer; }
-        .action-btn.complete { background: #27ae60; color: #fff; }
-        .action-btn.take { background: #2980b9; color: #fff; }
-        .action-btn.edit { background: #f39c12; color: #fff; }
-        .action-btn.delete { background: #c0392b; color: #fff; }
-        .add-task-btn { background: #16a085; color: #fff; border: none; border-radius: 3px; padding: 8px 16px; cursor: pointer; margin-bottom: 10px; }
+        .user-dropdown {
+            display: none;
+            position: absolute;
+            left: 0;
+            top: 40px;
+            background: #fff;
+            min-width: 140px;
+            box-shadow: 0 2px 8px #0002;
+            border-radius: 8px;
+            z-index: 100;
+        }
+        .user-menu:hover .user-dropdown { display: block; }
+        .user-dropdown a { display: block; padding: 10px 16px; color: #333; text-decoration: none; }
+        .user-dropdown a:hover { background: #f0f4fa; }
+        .task-card { margin-bottom: 18px; }
+        .task-actions button { margin-left: 6px; }
+        .add-task-modal .modal-dialog { direction: rtl; }
     </style>
 </head>
-<body>
-    <div class="navbar">
-        <div></div>
-        <div class="navbar-center">
-            <form class="filters" method="get">
-                <select name="status">
-                    <option value="">סנן לפי סטטוס</option>
-                    <option value="1">חדש</option>
-                    <option value="2">בתהליך</option>
-                    <option value="3">הושלם</option>
-                </select>
-                <select name="employee">
-                    <option value="">סנן לפי עובד</option>
-                    {% for emp in employees %}
-                        <option value="{{ emp.id }}">{{ emp.username }}</option>
-                    {% endfor %}
-                </select>
-                <button type="submit">סנן</button>
-            </form>
-        </div>
+<body dir="rtl">
+<div class="container mt-4">
+
+    <!-- Top Bar -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <!-- User menu (left) -->
         <div class="user-menu">
-            <span class="user-icon">&#128100;</span>
-            <div class="dropdown">
-                <a href="{% url 'register' %}">רישום</a>
-                <form method="post" action="{% url 'logout' %}" style="display:inline; margin:0; padding:0;">
-                    {% csrf_token %}
-                    <button type="submit" style="background:none;border:none;color:#333;cursor:pointer;width:100%;text-align:left;padding:10px 16px;">יציאה</button>
-                </form>
+            <i class="bi bi-person-circle fs-2"></i>
+            <div class="user-dropdown">
+                <a href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> יציאה</a>
+                <a href="{% url 'register' %}"><i class="bi bi-person-plus"></i> הרשמה</a>
             </div>
         </div>
+        <!-- Add Task (right, only for manager) -->
+        {% if role == 1 %}
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                <i class="bi bi-plus-circle"></i> הוסף משימה
+            </button>
+        {% endif %}
     </div>
-   <p> role{{user}}</p>
-    {% if user.role == 1 %}
-        <div style="width:90%;margin:20px auto 0 auto;text-align:left;">
-            <button class="add-task-btn" onclick="window.location.href=`{% url 'add_task' %}`">+ הוסף משימה</button>
+
+    <!-- Filters -->
+    <form method="get" class="row g-2 align-items-center mb-4">
+        <div class="col-auto">
+            <select name="status" class="form-select">
+                <option value="">סטטוס משימה</option>
+                <option value="1">חדש</option>
+                <option value="2">בתהליך</option>
+                <option value="3">הושלם</option>
+            </select>
         </div>
-    {% endif %}
-    <table class="tasks-table">
-        <thead>
-            <tr>
-                <th>שם משימה</th>
-                <th>סטטוס</th>
-                <th>תיאור</th>
-                <th>תאריך יעד</th>
-                <th>עובד מבצע</th>
-                <th>פעולות</th>
-            </tr>
-        </thead>
-        <tbody>
+        <div class="col-auto">
+            <select name="employee" class="form-select">
+                <option value="">עובד מבצע</option>
+                {% for emp in employees %}
+                    <option value="{{ emp.id }}">{{ emp.username }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">סנן</button>
+        </div>
+    </form>
+
+    <!-- Task List -->
+    <div>
         {% for task in tasks %}
-            <tr>
-                <td>{{ task.task_name }}</td>
-                <td>{% if task.task_status == 1 %}חדש{% elif task.task_status == 2 %}בתהליך{% else %}הושלם{% endif %}</td>
-                <td>{{ task.task_description }}</td>
-                <td>{{ task.task_last_date }}</td>
-                <td>
-                    {% if task.employee %}
-                        {{ task.employee.username }}
-                    {% elif user.role == 2 %}
-                        <form method="post" action="{% url 'take_task' task.id %}">{% csrf_token %}
-                            <button class="action-btn take" type="submit">קח לביצוע</button>
+        <div class="card task-card">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="card-title mb-1">{{ task.task_name }}</h5>
+                    <p class="card-text mb-1">{{ task.task_description }}</p>
+                    <div class="mb-1"><strong>תאריך יעד:</strong> {{ task.task_last_date }}</div>
+                    <div>
+                        <strong>מבצע:</strong>
+                        {% if task.task_employee %}
+                            {{ task.task_employee.username }}
+                        {% else %}
+                            {% if task.task_id %}
+                                <form method="post" action="{% url 'take_task' task.task_id %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button class="btn btn-outline-primary btn-sm">קח משימה</button>
+                                </form>
+                            {% else %}
+                                אין id
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="task-actions d-flex align-items-center">
+                    {% if role == 1 %}
+                        <!-- Edit -->
+                        {% if task.task_id %}
+                          <a href="{% url 'edit_task' task.task_id %}" class="btn btn-outline-secondary btn-sm me-1" title="ערוך">
+                            <i class="bi bi-pencil"></i>
+                          </a>
+                        {% endif %}
+                        <!-- Delete -->
+                        {% if task.task_id %}
+                        <form method="post" action="{% url 'delete_task' task.task_id %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-danger btn-sm" title="מחק">
+                                <i class="bi bi-trash"></i>
+                            </button>
                         </form>
+                        {% endif %}
                     {% endif %}
-                </td>
-                <td>
-                    {% if user.role == 2 and task.employee == user and task.task_status != 3 %}
-                        <form method="post" action="{% url 'complete_task' task.id %}">{% csrf_token %}
-                            <button class="action-btn complete" type="submit">סמן כהושלם</button>
-                        </form>
-                    {% endif %}
-                    {% if user.role == 1 %}
-                        <button class="action-btn edit" onclick="window.location.href='{% url 'edit_task' task.id %}'">✏️</button>
-                        <form method="post" action="{% url 'delete_task' task.id %}" style="display:inline;">{% csrf_token %}
-                            <button class="action-btn delete" type="submit">🗑️</button>
-                        </form>
-                    {% endif %}
-                </td>
-            </tr>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+            <div class="alert alert-info">אין משימות להצגה.</div>
         {% endfor %}
-        </tbody>
-    </table>
+    </div>
+</div>
+
+<!-- Add Task Modal (for manager) -->
+{% if role == 1 %}
+<div class="modal fade add-task-modal" id="addTaskModal" tabindex="-1" aria-labelledby="addTaskModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="post" action="{% url 'add_task' %}" class="modal-content">
+      {% csrf_token %}
+      <div class="modal-header">
+        <h5 class="modal-title" id="addTaskModalLabel">הוספת משימה חדשה</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="סגור"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+            <label class="form-label">שם משימה</label>
+            <input type="text" name="task_name" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">תיאור</label>
+            <textarea name="task_description" class="form-control" required></textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">תאריך יעד</label>
+            <input type="date" name="task_last_date" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">סטטוס</label>
+            <select name="task_status" class="form-select" required>
+                <option value="1">חדש</option>
+                <option value="2">בתהליך</option>
+                <option value="3">הושלם</option>
+            </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ביטול</button>
+        <button type="submit" class="btn btn-success">שמור</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

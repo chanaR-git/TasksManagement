@@ -43,67 +43,81 @@ def login(request):
     form=loginForm()
     return render(request,'login.html',{'form':form})
 
+def logout_view(request):
+    auth_logout(request)
+    return redirect('login')
+
+@login_required
 def tasks(request):
     user = request.user
-    employees = Employee.objects.filter(team_code=user.team_code) if user.team_code else []
-    if user.employee_role == 1:  # מנהל     
-        tasks = Task.objects.filter(task_team=user.team_code)
-    else:  # עובד
-        tasks = Task.objects.filter(task_team=user.team_code)
+    role = user.employee_role
+    #
+    employees = Employee.objects.all()
+    tasks_qs = Task.objects.all()
+
+    # סינון
+    status = request.GET.get('status')
+    employee = request.GET.get('employee')
+    if status:
+        tasks_qs = tasks_qs.filter(task_status=status)
+    if employee:
+        tasks_qs = tasks_qs.filter(task_employee_id=employee)
+
     return render(request, 'tasks.html', {
         'user': user,
-        'role': user.employee_role,
-        'tasks': tasks,
+        'role': role,
+        'tasks': tasks_qs,
+        #
         'employees': employees,
     })
 
+@require_POST
 @login_required
 def add_task(request):
-    # טופס הוספת משימה (פשוט)
-    if request.method == 'POST':
-        name = request.POST.get('task_name')
-        desc = request.POST.get('task_description')
-        date = request.POST.get('task_last_date')
-        team = request.user.team_code
-        Task.objects.create(task_name=name, task_description=desc, task_last_date=date, task_completed_date=date, task_status=1, task_team=team, employee=None)
+    if request.user.employee_role != 1:
         return redirect('tasks')
-    return render(request, 'add_task.html')
+    name = request.POST.get('task_name')
+    desc = request.POST.get('task_description')
+    date = request.POST.get('task_last_date')
+    status = request.POST.get('task_status')
+    Task.objects.create(
+        task_name=name,
+        task_description=desc,
+        task_last_date=date,
+        task_completed_date=date,  # אפשר לשנות בהתאם ללוגיקה שלך
+        task_status=status,
+        task_team=request.user.employee_Team,
+    )
+    return redirect('tasks')
+
+@require_POST
+@login_required
+def delete_task(request, task_id):
+    if request.user.employee_role != 1:
+        return redirect('tasks')
+    task = get_object_or_404(Task, pk=task_id)
+    task.delete()
+    return redirect('tasks')
+
+@require_POST
+@login_required
+def take_task(request, task_id):
+    task = get_object_or_404(Task, pk=task_id)
+    if not task.task_employee:
+        task.task_employee = request.user
+        task.save()
+    return redirect('tasks')
 
 @login_required
 def edit_task(request, task_id):
     task = get_object_or_404(Task, pk=task_id)
+    if request.user.employee_role != 1:
+        return redirect('tasks')
     if request.method == 'POST':
         task.task_name = request.POST.get('task_name')
         task.task_description = request.POST.get('task_description')
         task.task_last_date = request.POST.get('task_last_date')
+        task.task_status = request.POST.get('task_status')
         task.save()
         return redirect('tasks')
     return render(request, 'edit_task.html', {'task': task})
-
-@login_required
-def delete_task(request, task_id):
-    task = get_object_or_404(Task, pk=task_id)
-    if request.method == 'POST':
-        task.delete()
-        return redirect('tasks')
-    return HttpResponse('Method not allowed', status=405)
-
-@login_required
-def take_task(request, task_id):
-    task = get_object_or_404(Task, pk=task_id)
-    if request.method == 'POST' and request.user.employee_role == 2 and not task.employee:
-        task.employee = request.user
-        task.task_status = 2
-        task.save()
-        return redirect('tasks')
-    return HttpResponse('Method not allowed', status=405)
-
-@login_required
-def complete_task(request, task_id):
-    task = get_object_or_404(Task, pk=task_id)
-    if request.method == 'POST' and request.user == task.employee:
-        task.task_status = 3
-        task.save()
-        return redirect('tasks')
-    return HttpResponse('Method not allowed', status=405)
-

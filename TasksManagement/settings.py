@@ -102,6 +102,13 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LOGIN_REDIRECT_URL = 'tasks'
 
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'TasksManagementApp', 'static'),
+]
+LOGIN_URL = '/TMApp/login/'
+LOGIN_REDIRECT_URL = '/TMApp/tasks/'
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
