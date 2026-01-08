@@ -3,9 +3,11 @@ from django.contrib.auth.decorators import login_required
 from TasksManagementApp.models import Employee, Task, Team
 from TasksManagementApp.forms import loginForm, EmployeeCreationForm
 from django.contrib.auth import authenticate, login as auth_login
+from django.contrib.auth import logout as auth_logout
 from django.contrib import messages
 from django.http import HttpResponse
 from django.views.decorators.http import require_POST
+from django.utils import timezone
 
 def register(request):
     if request.method == 'POST':
@@ -51,7 +53,7 @@ def logout_view(request):
 def tasks(request):
     user = request.user
     role = user.employee_role
-    #
+
     employees = Employee.objects.all()
     tasks_qs = Task.objects.all()
 
@@ -61,13 +63,12 @@ def tasks(request):
     if status:
         tasks_qs = tasks_qs.filter(task_status=status)
     if employee:
-        tasks_qs = tasks_qs.filter(task_employee_id=employee)
+        tasks_qs = tasks_qs.filter(employee_id=employee)
 
     return render(request, 'tasks.html', {
         'user': user,
         'role': role,
         'tasks': tasks_qs,
-        #
         'employees': employees,
     })
 
@@ -84,9 +85,8 @@ def add_task(request):
         task_name=name,
         task_description=desc,
         task_last_date=date,
-        task_completed_date=date,  # אפשר לשנות בהתאם ללוגיקה שלך
-        task_status=status,
-        task_team=request.user.employee_Team,
+        task_status=1,
+        task_team=request.user.team_code,
     )
     return redirect('tasks')
 
@@ -96,6 +96,8 @@ def delete_task(request, task_id):
     if request.user.employee_role != 1:
         return redirect('tasks')
     task = get_object_or_404(Task, pk=task_id)
+    if (task.employee is not None):
+        return redirect('tasks')
     task.delete()
     return redirect('tasks')
 
@@ -103,21 +105,33 @@ def delete_task(request, task_id):
 @login_required
 def take_task(request, task_id):
     task = get_object_or_404(Task, pk=task_id)
-    if not task.task_employee:
-        task.task_employee = request.user
+    if not task.employee:
+        task.employee = request.user
+        task.task_status = 2  # Set status to in process
         task.save()
     return redirect('tasks')
 
+@require_POST
 @login_required
 def edit_task(request, task_id):
-    task = get_object_or_404(Task, pk=task_id)
     if request.user.employee_role != 1:
         return redirect('tasks')
-    if request.method == 'POST':
-        task.task_name = request.POST.get('task_name')
-        task.task_description = request.POST.get('task_description')
-        task.task_last_date = request.POST.get('task_last_date')
-        task.task_status = request.POST.get('task_status')
+    task = get_object_or_404(Task, pk=task_id)
+    #if request.method == 'POST':
+    task.task_name = request.POST.get('task_name')
+    task.task_description = request.POST.get('task_description')
+    task.task_last_date = request.POST.get('task_last_date')
+    task.task_status = request.POST.get('task_status')
+    task.save()
+    return redirect('tasks')
+    #return render(request, 'edit_task.html', {'task': task})
+
+@require_POST
+@login_required
+def complete_task(request, task_id):
+    task = get_object_or_404(Task, pk=task_id)
+    if task.employee == request.user:
+        task.task_status = 3  # Set status to completed
+        task.task_completed_date = timezone.now()
         task.save()
-        return redirect('tasks')
-    return render(request, 'edit_task.html', {'task': task})
+    return redirect('tasks')
