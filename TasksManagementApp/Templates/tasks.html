@@ -99,13 +99,13 @@
                         {% if task.employee %}
                             {{ task.employee.username }}
                         {% else %}
-                            {% if task.task_id %}
+                            {% if task.task_id and role != 1 %}
                                 <form method="post" action="{% url 'take_task' task.task_id %}" style="display:inline;">
                                     {% csrf_token %}
                                     <button class="btn btn-outline-primary btn-sm">קח משימה</button>
                                 </form>
                             {% else %}
-                                אין id
+                                <span>פנוי</span>
                             {% endif %}
                         {% endif %}
                     </div>
@@ -114,13 +114,15 @@
                     {% endif %}
                 </div>
                 <div class="task-actions d-flex align-items-center">
-                    {% if role == 1 %}
+                    {% if role == 1 and task.employee is None %}
+                    
                         <!-- Edit -->
-                        {% if task.task_id %}
-                          <a title="ערוך" data-bs-toggle="modal" data-bs-target="#editTaskModal" data-task-id="{{ task.task_id }}" class="btn btn-outline-secondary btn-sm me-1">
-                            <i class="bi bi-pencil"></i>
-                          </a>
-                        {% endif %}
+                            {% if task.task_id and task.task_status != 2  %}
+                                <a href="{% url 'edit_task' task.task_id %}" class="btn btn-outline-secondary btn-sm me-1">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            {% endif %}
+                       
                         <!-- Delete -->
                         {% if task.task_id %}
                         <form method="post" action="{% url 'delete_task' task.task_id %}" style="display:inline;">
@@ -177,41 +179,6 @@
       </div>
     </form>
   </div>
-</div>
-{% endif %}
-
-<!-- Edit Task Modal (for manager) -->
-{% if role == 1 %}
-<div class="modal fade edit-task-modal" id="editTaskModal" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editTaskModalLabel">עריכת משימה</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="סגור"></button>
-            </div>
-            
-            <form action="{% url 'edit_task' 1 %}" method="post">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">שם משימה</label>
-                        <input type="text" name="task_name" class="form-control" value="{{ task.task_name }}" >
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">תיאור</label>
-                        <textarea name="task_description" class="form-control" >{{ task.task_description }}</textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">תאריך יעד</label>
-                        <input type="date" name="task_last_date" class="form-control" value="{{ task.task_last_date|date:'Y-m-d' }}" required>
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-success">שמור</button>
-                <a href="{% url 'tasks' %}" class="btn btn-secondary" data-bs-dismiss="modal">ביטול</a>
-            </form>
-    {% if task.task_id %}
-      <a href="{% url 'edit_task' task.task_id %}">ערוך</a>
-    {% endif %}
 </div>
 {% endif %}
 

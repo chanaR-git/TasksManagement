@@ -12,9 +12,7 @@ from django.utils import timezone
 def register(request):
     if request.method == 'POST':
         form = EmployeeCreationForm(request.POST)
-        print("form valid", form.is_valid())
         if form.is_valid():
-            print("Form data:", form.cleaned_data)
             form.save()
             messages.success(request, 'Registration successful. Please log in.')
             return redirect('login')
@@ -55,7 +53,7 @@ def tasks(request):
     role = user.employee_role
 
     employees = Employee.objects.all()
-    tasks_qs = Task.objects.all()
+    tasks_qs = get_tasks_for_current_user(request)
 
     # סינון
     status = request.GET.get('status')
@@ -72,6 +70,9 @@ def tasks(request):
         'employees': employees,
     })
 
+def get_tasks_for_current_user(request):
+        return Task.objects.filter(task_team=request.user.team_code)
+
 @require_POST
 @login_required
 def add_task(request):
@@ -80,6 +81,8 @@ def add_task(request):
     name = request.POST.get('task_name')
     desc = request.POST.get('task_description')
     date = request.POST.get('task_last_date')
+    # if date < timezone.now().date():
+    #         date = timezone.now()
     status = request.POST.get('task_status')
     Task.objects.create(
         task_name=name,
@@ -96,8 +99,8 @@ def delete_task(request, task_id):
     if request.user.employee_role != 1:
         return redirect('tasks')
     task = get_object_or_404(Task, pk=task_id)
-    if (task.employee is not None):
-        return redirect('tasks')
+    # if (task.employee is not None):
+    #     return redirect('tasks')
     task.delete()
     return redirect('tasks')
 
@@ -113,21 +116,6 @@ def take_task(request, task_id):
 
 @require_POST
 @login_required
-def edit_task(request, task_id):
-    if request.user.employee_role != 1:
-        return redirect('tasks')
-    task = get_object_or_404(Task, pk=task_id)
-    #if request.method == 'POST':
-    task.task_name = request.POST.get('task_name')
-    task.task_description = request.POST.get('task_description')
-    task.task_last_date = request.POST.get('task_last_date')
-    task.task_status = request.POST.get('task_status')
-    task.save()
-    return redirect('tasks')
-    #return render(request, 'edit_task.html', {'task': task})
-
-@require_POST
-@login_required
 def complete_task(request, task_id):
     task = get_object_or_404(Task, pk=task_id)
     if task.employee == request.user:
@@ -135,3 +123,20 @@ def complete_task(request, task_id):
         task.task_completed_date = timezone.now()
         task.save()
     return redirect('tasks')
+
+@login_required
+def edit_task(request, task_id):
+    if request.user.employee_role != 1:
+        return redirect('tasks')
+    task = get_object_or_404(Task, pk=task_id)
+    if request.method =='POST':
+        task.task_name = request.POST.get('task_name')
+        task.task_description = request.POST.get('task_description')
+        task.task_last_date = request.POST.get('task_last_date')
+        # if task.task_last_date < timezone.now().date():
+        #     task.task_last_date = timezone.now().date()
+        task.save()
+        return redirect('tasks')
+    return render(request,'edit_task.html',{'task':task})
+
+

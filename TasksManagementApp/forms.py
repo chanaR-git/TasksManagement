@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import Employee
+from .models import Employee,Team
 from django.contrib.auth.models import User
 
 class loginForm(forms.ModelForm):
@@ -13,3 +13,4 @@ class EmployeeCreationForm(UserCreationForm):
     class Meta:
         model = Employee
         fields = ['username', 'employee_role', 'team_code']
+    team_code= forms.ModelChoiceField(queryset=Team.objects.all(),empty_label=None)

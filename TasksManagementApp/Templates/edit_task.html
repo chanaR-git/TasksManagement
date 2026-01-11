@@ -24,20 +24,9 @@
             <label class="form-label">תאריך יעד</label>
             <input type="date" name="task_last_date" class="form-control" value="{{ task.task_last_date|date:'Y-m-d' }}" required>
         </div>
-        <div class="mb-3">
-            <label class="form-label">סטטוס</label>
-            <select name="task_status" class="form-select" required>
-                <option value="1" {% if task.task_status == 1 %}selected{% endif %}>חדש</option>
-                <option value="2" {% if task.task_status == 2 %}selected{% endif %}>בתהליך</option>
-                <option value="3" {% if task.task_status == 3 %}selected{% endif %}>הושלם</option>
-            </select>
-        </div>
         <button type="submit" class="btn btn-success">שמור</button>
         <a href="{% url 'tasks' %}" class="btn btn-secondary">ביטול</a>
     </form>
-    {% if task.id %}
-      <a href="{% url 'edit_task' task.id %}">ערוך</a>
-    {% endif %}
 </div>
 </body> 
 </html>

@@ -27,6 +27,10 @@ class Task(models.Model):
     employee = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,related_name='myTasks',blank=True, null=True)
     task_team = models.ForeignKey('Team',on_delete=models.PROTECT,related_name='tasks',blank=False, null=False)
 
+    def clean(self):
+        if self.task_completed_date > self.task_last_date and self.task_last_date > timezone.now():
+            raise ValidationError('  .תאריך יעד לא יכול להיות תאריך שטרם היה  וסיום משימה לא יתכן אחרי תאריך היעד')
+        
     def __str__(self):
         return self.task_name + self.task_description
 
