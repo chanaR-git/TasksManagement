@@ -16,13 +16,16 @@ def register(request):
         form = EmployeeCreationForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Registration successful. Please log in.')
-            return redirect('login')
+            messages.success(request, 'Profile updated successfully.')
+            return redirect('tasks')
         else:
             messages.error(request, 'Registration failed. Please correct the errors below.')
             print("Form errors:", form.errors)
     else:
-        form = EmployeeCreationForm()
+        if request.user:
+            form = EmployeeCreationForm(instance=request.user)
+        else:
+            form = EmployeeCreationForm()
     return render(request, 'register.html', {'form': form})
 
 def login(request):
@@ -81,26 +84,6 @@ def get_tasks_for_current_user(request):
 def add_task(request):
     if request.user.employee_role != 1:
         return redirect('tasks')
-    # # if request.method != 'POST':
-    # #     return 
-    # name = request.POST.get('task_name')
-    # desc = request.POST.get('task_description')
-    # date = request.POST.get('task_last_date')
-    # status = request.POST.get('task_status')
-    # task = Task(
-    #     task_name=name,
-    #     task_description=desc,
-    #     task_last_date=date,
-    #     task_status=1,
-    #     task_team=request.user.team_code,
-    # )
-    # try:
-    #     task.full_clean()
-    #     task.save()
-    #     return redirect('tasks')
-    # except ValidationError as e:
-    #     messages.error(request, 'Error creating task: ' + str(e))
-    #     return redirect('tasks')
     if request.method == 'POST':
         form = AddTaskForm(request.POST)
         if form.is_valid():
