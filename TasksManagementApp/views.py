@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from TasksManagementApp.models import Employee, Task, Team
-from TasksManagementApp.forms import loginForm, EmployeeCreationForm
+from TasksManagementApp.forms import loginForm, EmployeeCreationForm , AddTaskForm
 from django.contrib.auth import authenticate, login as auth_login
 from django.contrib.auth import logout as auth_logout
 from django.contrib import messages
@@ -70,33 +70,60 @@ def tasks(request):
         'role': role,
         'tasks': tasks_qs,
         'employees': employees,
+        'form': AddTaskForm(),
     })
 
 def get_tasks_for_current_user(request):
         return Task.objects.filter(task_team=request.user.team_code)
 
-@require_POST
+# @require_POST
 @login_required
 def add_task(request):
     if request.user.employee_role != 1:
         return redirect('tasks')
-    name = request.POST.get('task_name')
-    desc = request.POST.get('task_description')
-    date = request.POST.get('task_last_date')
-    status = request.POST.get('task_status')
-    task = Task(
-        task_name=name,
-        task_description=desc,
-        task_last_date=date,
-        task_status=1,
-        task_team=request.user.team_code,
-    )
-    try:
-        task.full_clean()
-        task.save()
-        return redirect('tasks')
-    except ValidationError as e:
-        messages.error(request, 'Error creating task: ' + str(e))
+    # # if request.method != 'POST':
+    # #     return 
+    # name = request.POST.get('task_name')
+    # desc = request.POST.get('task_description')
+    # date = request.POST.get('task_last_date')
+    # status = request.POST.get('task_status')
+    # task = Task(
+    #     task_name=name,
+    #     task_description=desc,
+    #     task_last_date=date,
+    #     task_status=1,
+    #     task_team=request.user.team_code,
+    # )
+    # try:
+    #     task.full_clean()
+    #     task.save()
+    #     return redirect('tasks')
+    # except ValidationError as e:
+    #     messages.error(request, 'Error creating task: ' + str(e))
+    #     return redirect('tasks')
+    if request.method == 'POST':
+        form = AddTaskForm(request.POST)
+        if form.is_valid():
+            task = form.save(commit=False)
+            task.task_status = 1 # Set status to new
+            task.task_team = request.user.team_code
+            task.save()
+            messages.success(request, 'Task added successfully.')
+            return redirect('tasks')
+        else:
+            employees = Employee.objects.all()
+            tasks_qs = Task.objects.filter(task_team=request.user.team_code)
+            messages.error(request, 'המשימה לא נשמרה. נא לבדוק את השדות ולנסות שוב.')
+            return render(request, 'tasks.html', {
+                'user': request.user,
+                'role': request.user.employee_role,
+                'tasks': tasks_qs,
+                'employees': employees,
+                'form': form,
+                'open_modal': True,  # משתנה לפתיחת המודל
+            })
+            print("Form errors:", form.errors)
+    else:
         return redirect('tasks')
 
 @require_POST
