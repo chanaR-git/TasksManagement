@@ -18,5 +18,11 @@ class EmployeeCreationForm(UserCreationForm):
 class AddTaskForm(forms.ModelForm):
     class Meta:
         model = Task
-        fields = ['task_name', 'task_description', 'task_last_date']
+        fields = ['task_name', 'task_description', 'task_last_date', 'employee']
+        widgets = {
+            'task_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'task_description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'task_last_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'employee': forms.Select(attrs={'class': 'form-select'}),
+        }
     task_last_date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
