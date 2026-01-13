@@ -8,6 +8,8 @@ from django.contrib import messages
 from django.http import HttpResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
+from django.core.exceptions import ValidationError
+
 
 def register(request):
     if request.method == 'POST':
@@ -81,17 +83,21 @@ def add_task(request):
     name = request.POST.get('task_name')
     desc = request.POST.get('task_description')
     date = request.POST.get('task_last_date')
-    # if date < timezone.now().date():
-    #         date = timezone.now()
     status = request.POST.get('task_status')
-    Task.objects.create(
+    task = Task(
         task_name=name,
         task_description=desc,
         task_last_date=date,
         task_status=1,
         task_team=request.user.team_code,
     )
-    return redirect('tasks')
+    try:
+        task.full_clean()
+        task.save()
+        return redirect('tasks')
+    except ValidationError as e:
+        messages.error(request, 'Error creating task: ' + str(e))
+        return redirect('tasks')
 
 @require_POST
 @login_required

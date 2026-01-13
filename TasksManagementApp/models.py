@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 class Employee(AbstractUser):
     ROLES = [
@@ -16,6 +18,7 @@ class Employee(AbstractUser):
     def __str__(self):
         return self.username
 
+
 class Task(models.Model):
     STATUS_CHOICES = [(1,"new"),(2,"in process"),(3,"completed")]
     task_id = models.AutoField(primary_key=True)
@@ -28,9 +31,13 @@ class Task(models.Model):
     task_team = models.ForeignKey('Team',on_delete=models.PROTECT,related_name='tasks',blank=False, null=False)
 
     def clean(self):
-        if self.task_completed_date > self.task_last_date and self.task_last_date > timezone.now():
-            raise ValidationError('  .תאריך יעד לא יכול להיות תאריך שטרם היה  וסיום משימה לא יתכן אחרי תאריך היעד')
-        
+        super().clean()
+        if self.task_last_date:
+            if self.task_last_date < timezone.now().date():
+                raise ValidationError({'task_last_date': 'תאריך יעד לא יכול להיות תאריך שכבר היה.'})
+            if self.task_completed_date and self.task_completed_date > self.task_last_date:
+                raise ValidationError({'task_completed_date': 'סיום משימה לא יתכן אחרי תאריך היעד.'})
+
     def __str__(self):
         return self.task_name + self.task_description
 

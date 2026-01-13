@@ -151,6 +151,15 @@
 
 <!-- Add Task Modal (for manager) -->
 {% if role == 1 %}
+    <!-- {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+        {% if "task_last_date" in message %}
+            <li class="error">{{ message }}</li>
+        {% endif %}
+        {% endfor %} -->
+    </ul>
+    {% endif %}
 <div class="modal fade add-task-modal" id="addTaskModal" tabindex="-1" aria-labelledby="addTaskModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <form method="post" action="{% url 'add_task' %}" class="modal-content">
