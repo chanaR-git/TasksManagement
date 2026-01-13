@@ -13,11 +13,16 @@ from django.core.exceptions import ValidationError
 
 def register(request):
     if request.method == 'POST':
-        form = EmployeeCreationForm(request.POST)
+        if request.user.is_authenticated:
+            # עדכון משתמש קיים
+            form = EmployeeCreationForm(request.POST, instance=request.user)
+        else:
+            # יצירת משתמש חדש
+            form = EmployeeCreationForm(request.POST)
         if form.is_valid():
-            form.save()
+            user = form.save()
             messages.success(request, 'Profile updated successfully.')
-            return redirect('tasks')
+            return redirect('login')
         else:
             messages.error(request, 'Registration failed. Please correct the errors below.')
             print("Form errors:", form.errors)
